@@ -1,5 +1,25 @@
 {
   "dependencies": {
     "date-fns": "^4.1.0"
-  }
+  },
+  "name": "chat_application---copy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "build":"npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend ",
+    "start":"npm run build --prefix backend"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NitheesI/Chat_Application---Copy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NitheesI/Chat_Application---Copy/issues"
+  },
+  "homepage": "https://github.com/NitheesI/Chat_Application---Copy#readme",
+  "description": ""
 }
