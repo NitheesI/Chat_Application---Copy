@@ -7,7 +7,10 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://7kvn873c-5173.inc1.devtunnels.ms" // <-- Add your tunnel origin here
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },

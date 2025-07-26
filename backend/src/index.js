@@ -22,7 +22,7 @@ app.use(express.urlencoded({extended:true,limit:'10mb'}));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ['http://localhost:5173', 'https://7kvn873c-5173.inc1.devtunnels.ms'],
     credentials: true,
   })
 );
