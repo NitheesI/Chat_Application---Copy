@@ -16,17 +16,26 @@ const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Make sure to add your deployed frontend URL here!
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://7kvn873c-5173.inc1.devtunnels.ms",
+  process.env.FRONTEND_URL || "https://chat-application-copy-9.onrender.com", // Add your Render frontend URL
+];
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://7kvn873c-5173.inc1.devtunnels.ms",
-      // Add your production frontend URL here, e.g.:
-      // "https://chat-application-copy-8.onrender.com"
-    ],
+    origin: (origin, callback) => {
+      // Reflect requests with no origin (like Postman) or in whitelist
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy: This origin is not allowed"));
+      }
+    },
     credentials: true,
   })
 );
@@ -36,13 +45,13 @@ app.use("/api/messages", messageRoutes);
 
 // ---- Static file serving (IMPORTANT ORDER) ----
 if (process.env.NODE_ENV === "production") {
-  // Correctly resolve path to frontend/dist based on backend/src/index.js location
+  // Resolve path to frontend/dist relative to this file
   const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
 
-  // 1. Serve static assets (css, js, etc.) first
+  // Serve static files first
   app.use(express.static(frontendDistPath));
 
-  // 2. For all other routes, serve the frontend's index.html (SPA fallback)
+  // SPA fallback - serve index.html for all other routes
   app.get("*", (req, res) => {
     res.sendFile(path.join(frontendDistPath, "index.html"));
   });
@@ -61,4 +70,3 @@ async function startServer() {
 }
 
 startServer();
-
