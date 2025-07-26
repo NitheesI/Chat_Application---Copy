@@ -24,7 +24,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://7kvn873c-5173.inc1.devtunnels.ms",
-      // Add your production frontend URL here
+      // Add your production frontend URL here, e.g.:
+      // "https://chat-application-copy-8.onrender.com"
     ],
     credentials: true,
   })
@@ -33,10 +34,15 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
+// ---- Static file serving (IMPORTANT ORDER) ----
 if (process.env.NODE_ENV === "production") {
+  // Correctly resolve path to frontend/dist based on backend/src/index.js location
   const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
+
+  // 1. Serve static assets (css, js, etc.) first
   app.use(express.static(frontendDistPath));
 
+  // 2. For all other routes, serve the frontend's index.html (SPA fallback)
   app.get("*", (req, res) => {
     res.sendFile(path.join(frontendDistPath, "index.html"));
   });
@@ -44,7 +50,7 @@ if (process.env.NODE_ENV === "production") {
 
 async function startServer() {
   try {
-    await connectDB(); // await if your method supports it
+    await connectDB();
     server.listen(PORT, () => {
       console.log(`Server is running on PORT: ${PORT}`);
     });
