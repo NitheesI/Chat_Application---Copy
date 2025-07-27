@@ -26,25 +26,26 @@ export function getReceiverSocketId(userId) {
 }
 
 io.on("connection", (socket) => {
-  console.log("A user connected", socket.id);
+  // Get userId from query and ensure it's a string
+  let userId = socket.handshake.query.userId;
+  if (userId) userId = String(userId);
 
-  // For Socket.IO v4+ recommended way
-  // const userId = socket.handshake.auth.userId;
-  // If using query params (older versions / current client config)
-  const userId = socket.handshake.query.userId;
+  console.log("Socket connected:", socket.id, "UserID:", userId);
 
   if (userId) {
     userSocketMap[userId] = socket.id;
   }
 
   // Notify clients about online users
+  console.log("Online users after connect:", Object.keys(userSocketMap));
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected", socket.id);
+    console.log("A user disconnected", socket.id, "UserID:", userId);
     if (userId) {
       delete userSocketMap[userId];
     }
+    console.log("Online users after disconnect:", Object.keys(userSocketMap));
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 });
