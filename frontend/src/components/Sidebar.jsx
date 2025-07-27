@@ -102,11 +102,15 @@ const Sidebar = () => {
               />
               {/* Online indicator */}
               {onlineUsers.includes(user._id) && (
-                <span
-                  className="absolute bottom-0 right-0 size-3 bg-green-500 
-                    rounded-full ring-2 ring-zinc-900"
-                />
-              )}
+        <span
+          className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full ring-2 ring-zinc-900"
+          title="Online"
+          aria-label="Online"
+        />
+      )}
+      {/* ...other possible badges, like unread count */}
+    </div>
+    <div className="hidden lg:block text-left min-w-0">
               {/* Message unread notification badge */}
               {user.unreadCount > 0 && (
                 <span
