@@ -16,7 +16,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/users");
       set({ users: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to fetch users");
     } finally {
       set({ isUsersLoading: false });
     }
@@ -28,7 +28,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get(`/messages/${userId}`);
       set({ messages: res.data });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to fetch messages");
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -40,64 +40,69 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
       set({ messages: [...messages, res.data] });
 
-      // Update users' lastMessage for this user
+      // Update users list lastMessage & reset unread count for open chat
       set({
         users: users.map(u =>
           u._id === selectedUser._id
             ? {
                 ...u,
-                lastMessage: res.data, // assumes response is message doc with {text, image, createdAt, senderId, ...}
-                unreadCount: 0 // reset unread for the open chat
+                lastMessage: res.data,
+                unreadCount: 0
               }
             : u
         ),
       });
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
 
   subscribeToMessages: () => {
-    const { selectedUser, messages, users } = get();
-    if (!selectedUser) return;
-
     const socket = useAuthStore.getState().socket;
+    const { selectedUser, authUser } = get();
+
+    if (!selectedUser || !socket || !socket.connected) return;
+
+    // Remove existing listener to avoid duplicates
+    socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
-      // append to current chat messages if from this contact
-      const isMessageFromActiveChat = newMessage.senderId === selectedUser._id;
-      if (isMessageFromActiveChat) {
+      // Check if message belongs to active chat (between selectedUser and authUser)
+      const isInActiveChat =
+        (newMessage.senderId === selectedUser._id && newMessage.receiverId === authUser._id) ||
+        (newMessage.senderId === authUser._id && newMessage.receiverId === selectedUser._id);
+
+      if (isInActiveChat) {
         set({
-          messages: [...get().messages, newMessage],
+          messages: [...get().messages, newMessage]
         });
       }
 
-      // Update users' lastMessage for this user; increment unread (if not selected)
+      // Update users' lastMessage and unreadCount appropriately
       set({
-        users: users.map(u =>
-          u._id === newMessage.senderId || u._id === newMessage.receiverId // either peer
-            ? {
-                ...u,
-                lastMessage: newMessage,
-                unreadCount:
-                  isMessageFromActiveChat
-                    ? 0
-                    : (u.unreadCount || 0) + 1 // only increment unread if NOT viewing this chat
-              }
-            : u
-        ),
+        users: get().users.map(u => {
+          if (u._id === newMessage.senderId || u._id === newMessage.receiverId) {
+            return {
+              ...u,
+              lastMessage: newMessage,
+              unreadCount: isInActiveChat ? 0 : (u.unreadCount || 0) + 1,
+            };
+          }
+          return u;
+        }),
       });
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
+    if (!socket) return;
     socket.off("newMessage");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
 
-  // 👇 add markMessagesAsRead to reset unreadCount when chat is opened
+  // Call this to reset unread count when user opens the chat
   markMessagesAsRead: (userId) => {
     set(state => ({
       users: state.users.map(u =>

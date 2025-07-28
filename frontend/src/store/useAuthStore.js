@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance, BASE_URL } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
+import { useChatStore } from "./useChatStore";  // Make sure path is correct
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -18,7 +19,7 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosInstance.get("/auth/check");
       const user = res.data;
       set({ authUser: user });
-      if (user) get().connectSocket();   // connect only if user exists
+      if (user) get().connectSocket();
     } catch (error) {
       console.error("Error in checkAuth:", error);
       set({ authUser: null });
@@ -91,8 +92,23 @@ export const useAuthStore = create((set, get) => ({
 
     set({ socket: newSocket });
 
+    // Update online users when backend emits
     newSocket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
+    });
+
+    // Listen for incoming messages and update chat store
+    newSocket.on("newMessage", (message) => {
+      const addMessage = useChatStore.getState().addMessage;
+      if (addMessage) addMessage(message);
+    });
+
+    newSocket.on("disconnect", () => {
+      set({ socket: null, onlineUsers: [] });
+    });
+
+    newSocket.on("connect_error", (err) => {
+      console.error("Socket connection error:", err);
     });
   },
 
@@ -104,4 +120,3 @@ export const useAuthStore = create((set, get) => ({
     set({ socket: null, onlineUsers: [] });
   },
 }));
-
