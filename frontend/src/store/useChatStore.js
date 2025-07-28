@@ -36,19 +36,15 @@ export const useChatStore = create((set, get) => ({
 
   sendMessage: async (messageData) => {
     const { selectedUser, messages, users } = get();
+    if (!selectedUser?._id) return;
     try {
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
       set({ messages: [...messages, res.data] });
 
-      // Update users list lastMessage & reset unread count for open chat
       set({
         users: users.map(u =>
           u._id === selectedUser._id
-            ? {
-                ...u,
-                lastMessage: res.data,
-                unreadCount: 0
-              }
+            ? { ...u, lastMessage: res.data, unreadCount: 0 }
             : u
         ),
       });
@@ -57,40 +53,45 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  addMessage: (newMessage) => {
+    const { selectedUser, authUser } = useAuthStore.getState();
+    const { messages, users } = get();
+
+    // Check if the message belongs to the current chat
+    const isInActiveChat =
+      selectedUser &&
+      ((newMessage.senderId === selectedUser._id && newMessage.receiverId === authUser?._id) ||
+        (newMessage.senderId === authUser?._id && newMessage.receiverId === selectedUser._id));
+
+    if (isInActiveChat) {
+      set({ messages: [...messages, newMessage] });
+    }
+
+    // Update last message and unread counts
+    set({
+      users: users.map(u => {
+        if (u._id === newMessage.senderId || u._id === newMessage.receiverId) {
+          return {
+            ...u,
+            lastMessage: newMessage,
+            unreadCount: isInActiveChat ? 0 : (u.unreadCount || 0) + 1,
+          };
+        }
+        return u;
+      }),
+    });
+  },
+
   subscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
-    const { selectedUser, authUser } = get();
+    if (!socket || !socket.connected) return;
 
-    if (!selectedUser || !socket || !socket.connected) return;
-
-    // Remove existing listener to avoid duplicates
+    // Always clean up first to prevent duplicates
     socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
-      // Check if message belongs to active chat (between selectedUser and authUser)
-      const isInActiveChat =
-        (newMessage.senderId === selectedUser._id && newMessage.receiverId === authUser._id) ||
-        (newMessage.senderId === authUser._id && newMessage.receiverId === selectedUser._id);
-
-      if (isInActiveChat) {
-        set({
-          messages: [...get().messages, newMessage]
-        });
-      }
-
-      // Update users' lastMessage and unreadCount appropriately
-      set({
-        users: get().users.map(u => {
-          if (u._id === newMessage.senderId || u._id === newMessage.receiverId) {
-            return {
-              ...u,
-              lastMessage: newMessage,
-              unreadCount: isInActiveChat ? 0 : (u.unreadCount || 0) + 1,
-            };
-          }
-          return u;
-        }),
-      });
+      // Just delegate to addMessage for consistent logic
+      get().addMessage(newMessage);
     });
   },
 
@@ -102,7 +103,6 @@ export const useChatStore = create((set, get) => ({
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
 
-  // Call this to reset unread count when user opens the chat
   markMessagesAsRead: (userId) => {
     set(state => ({
       users: state.users.map(u =>

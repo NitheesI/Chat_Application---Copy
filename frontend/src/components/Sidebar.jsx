@@ -15,20 +15,20 @@ const Sidebar = () => {
     getUsers();
   }, [getUsers]);
 
-  // Filter users by online status and search query
+  // Filter users by online status and search query with safe checks
   const filteredUsers = users
     .filter((user) =>
-      showOnlineOnly ? onlineUsers.includes(user._id) : true
+      showOnlineOnly ? onlineUsers.includes(user?._id) : true
     )
     .filter((user) =>
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+      user?.fullName?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
   if (isUsersLoading) return <SidebarSkeleton />;
 
-  // Helper function to get last message preview
+  // Helper function to get last message preview safely
   const getLastMessagePreview = (user) => {
-    if (!user.lastMessage) return "No messages yet";
+    if (!user?.lastMessage) return "No messages yet";
     const fromMe = user.lastMessage.senderId === authUser?._id;
     if (user.lastMessage.text) {
       return (fromMe ? "You: " : "") + user.lastMessage.text;
@@ -86,23 +86,23 @@ const Sidebar = () => {
       <div className="overflow-y-auto w-full py-3">
         {filteredUsers.map((user) => (
           <button
-            key={user._id}
+            key={user?._id}
             onClick={() => setSelectedUser(user)}
             className={`
               w-full p-3 flex items-center gap-3
               hover:bg-base-300 transition-colors
-              ${selectedUser?._id === user._id ? "bg-base-300 ring-1 ring-base-300" : ""}
-              ${onlineUsers.includes(user._id) ? "ring-2 ring-green-500" : ""}
+              ${selectedUser?._id === user?._id ? "bg-base-300 ring-1 ring-base-300" : ""}
+              ${onlineUsers.includes(user?._id) ? "ring-2 ring-green-500" : ""}
             `}
           >
             <div className="relative mx-auto lg:mx-0">
               <img
-                src={user.profilePic || "/avatar.png"}
-                alt={user.fullName}
+                src={user?.profilePic || "/avatar.png"}
+                alt={user?.fullName || "User avatar"}
                 className="size-12 object-cover rounded-full"
               />
               {/* Online indicator */}
-              {onlineUsers.includes(user._id) && (
+              {onlineUsers.includes(user?._id) && (
                 <span
                   className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full ring-2 ring-zinc-900"
                   title="Online"
@@ -110,7 +110,7 @@ const Sidebar = () => {
                 />
               )}
               {/* Unread message badge */}
-              {user.unreadCount > 0 && (
+              {user?.unreadCount > 0 && (
                 <span
                   className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-4 flex items-center justify-center shadow"
                   title={`${user.unreadCount} unread message${user.unreadCount === 1 ? "" : "s"}`}
@@ -121,9 +121,9 @@ const Sidebar = () => {
             </div>
 
             <div className="hidden lg:block text-left min-w-0">
-              <div className={`font-medium truncate ${user.unreadCount > 0 ? "font-bold" : ""}`}>
-                {user.fullName}
-                {onlineUsers.includes(user._id) && (
+              <div className={`font-medium truncate ${user?.unreadCount > 0 ? "font-bold" : ""}`}>
+                {user?.fullName}
+                {onlineUsers.includes(user?._id) && (
                   <span className="ml-2 text-xs text-green-500 font-semibold">Online</span>
                 )}
               </div>
@@ -142,3 +142,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
