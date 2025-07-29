@@ -22,7 +22,7 @@ export function getReceiverSocketId(userId) {
 }
 
 io.on("connection", (socket) => {
-  let userId = socket.handshake.query.userId;
+  let userId = socket.handshake.auth.userId;
   if (userId) userId = String(userId);
   console.log("Socket connected:", socket.id, "UserID:", userId);
 
